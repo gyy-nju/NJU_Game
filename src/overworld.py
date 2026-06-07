@@ -7,10 +7,10 @@ from src.ui import draw_prompt
 
 
 class Overworld:
-    def __init__(self):
+    def __init__(self, gender="female"):
         self.map = GameMap("data/map.json")
         # 玩家初始位置：道路区域，例如第1列第1行的格子左上角（32,32）
-        self.player = Player(TILE_SIZE, TILE_SIZE)
+        self.player = Player(TILE_SIZE, TILE_SIZE, gender=gender)
         self.building_manager = BuildingManager(self.map)
         self.nearby_building = None
 
