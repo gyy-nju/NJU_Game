@@ -5,7 +5,7 @@ from src.map import GameMap
 from src.player import Player
 from src.building import BuildingManager
 from src.ui import draw_prompt, get_ui_font
-
+from src.ui import draw_time_ui
 
 
 class Overworld:
@@ -50,34 +50,26 @@ class Overworld:
             self.player_data.x = self.player.x
             self.player_data.y = self.player.y
             self.player_data.direction = self.player.direction
+
         player_rect = pygame.Rect(self.player.x, self.player.y,
                                   self.player.width, self.player.height)
         self.nearby_building = self.building_manager.check_nearby(player_rect)
 
-        #音乐
+        # 合并事件处理
         for event in events:
+            # 鼠标点击音乐按钮
             if event.type == pygame.MOUSEBUTTONDOWN:
-
                 mouse_pos = pygame.mouse.get_pos()
-
-                music_rect = pygame.Rect(
-                    10,
-                    10,
-                    40,
-                    40
-                )
-
+                music_rect = pygame.Rect(10, 10, 40, 40)
                 if music_rect.collidepoint(mouse_pos):
                     if self.music_manager:
                         self.music_manager.toggle()
 
-        # 处理事件（切换场景）
-        for event in events:
+            # 键盘按键
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return Scene.START
                 if event.key == pygame.K_e and self.nearby_building:
                     return Scene.BUILDING
+
         return None
 
     def draw(self, screen):
@@ -103,7 +95,6 @@ class Overworld:
             prompt = ""
         draw_prompt(screen, prompt)
         self.draw_menu_hint(screen)
-        from src.ui import draw_time_ui  # 如果顶部还没导入，加上
         draw_time_ui(screen, self.time_system)
         self.draw_music_button(screen)
 

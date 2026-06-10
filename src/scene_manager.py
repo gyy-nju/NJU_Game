@@ -13,6 +13,7 @@ from src.music_manager import MusicManager
 
 import src.config as cfg
 
+
 class SceneManager:
     def __init__(self):
         self.current_scene = Scene.START
@@ -35,7 +36,7 @@ class SceneManager:
         self.music_manager.play(
             "assets/sounds/blithemix.ogg"
         )
-        
+
         self.pre_scene = None
 
     def switch_to(self, scene_name):
@@ -54,7 +55,6 @@ class SceneManager:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     self.menu.open()
                     self.menu_open = True
-                    # 不再将 ESC 事件传递给当前场景，避免冲突
                 else:
                     filtered_events.append(event)
             events = filtered_events
@@ -92,7 +92,6 @@ class SceneManager:
         return None
 
     def handle_action(self, action):
-        # 兼容不同长度的元组
         if len(action) == 2:
             name, slot = action
         else:
@@ -105,22 +104,23 @@ class SceneManager:
             self.switch_to(Scene.CHARACTER_CREATE)
         elif name == "load_save":
             self.load_game(slot)
-            self.menu_open = False  # 读档后关闭菜单，进入游戏
-            # 不再停留在存档界面，无需返回键介入
+            self.menu_open = False
         elif name == "save_game":
             self.current_slot = slot
             self.save_current_game()
             self.scenes[Scene.SAVE_SELECT].refresh()
         elif name == "back_to_menu":
             if self.pre_scene is not None:
-                # 回到进入存档界面前的场景（大地图或建筑内部）
+                # 返回原场景，如果是大地图则重新传递音乐管理器
+                if self.pre_scene == Scene.OVERWORLD:
+                    self.scenes[Scene.OVERWORLD].enter(
+                        self.player_data, self.time_system, self.music_manager
+                    )
                 self.switch_to(self.pre_scene)
-                # 重新打开菜单
                 self.menu.open()
                 self.menu_open = True
                 self.pre_scene = None
             else:
-                # 从开始画面进入的读档界面 → 返回开始画面
                 self.switch_to(Scene.START)
                 self.menu_open = False
         return None
@@ -129,28 +129,27 @@ class SceneManager:
         if next_scene == Scene.SAVE_SELECT:
             self.scenes[Scene.SAVE_SELECT].refresh()
 
+        # 处理进入大地图
         if next_scene == Scene.OVERWORLD:
             if self.current_scene == Scene.CHARACTER_CREATE:
+                # 新建角色 → 获取数据并重置时间
                 self.player_data = self.scenes[Scene.CHARACTER_CREATE].created_player_data
                 self.current_slot = self.pending_new_slot
                 self.pending_new_slot = None
-                # 重置时间系统到默认值（新游戏开始）
-                self.time_system = TimeSystem()  # ← 新增这一行
+                self.time_system = TimeSystem()
+                # 统一调用 enter，传入音乐管理器
                 self.scenes[Scene.OVERWORLD].enter(
-                    self.player_data,
-                    self.time_system,
-                    self.music_manager
+                    self.player_data, self.time_system, self.music_manager
                 )
-                self.save_current_game()
-                self.scenes[Scene.OVERWORLD].enter(self.player_data, self.time_system)
                 if cfg.AUTO_SAVE_ENABLED:
                     self.save_current_game()
             else:
+                # 其他情况进入大地图（如从建筑返回、读档后等），也传递音乐管理器
                 self.scenes[Scene.OVERWORLD].enter(
-                    self.player_data,
-                    self.time_system,
-                    self.music_manager
+                    self.player_data, self.time_system, self.music_manager
                 )
+
+        # 处理进入建筑内部
         if next_scene == Scene.BUILDING and self.current_scene == Scene.OVERWORLD:
             nearby = self.scenes[Scene.OVERWORLD].nearby_building
             if nearby:
@@ -167,7 +166,6 @@ class SceneManager:
             building_data = self.scenes[Scene.BUILDING].building_data
             current_building = building_data.get("name") if building_data else None
 
-        # 获取当前时间状态
         ts = self.time_system
         game_time = {
             "day": ts.day,
@@ -188,21 +186,18 @@ class SceneManager:
         self.current_slot = slot
         self.player_data = self.save_manager.player_from_save(save_data)
 
-        # 恢复游戏时间
         saved_time = save_data.get("game_time", {})
         self.time_system.day = saved_time.get("day", 1)
         self.time_system.hour = saved_time.get("hour", 8)
         self.time_system.minute = saved_time.get("minute", 0)
 
+        # 初始化大地图，传入音乐管理器
         self.scenes[Scene.OVERWORLD].enter(
             self.player_data,
             self.time_system,
             self.music_manager
         )
-        # 初始化大地图玩家数据
-        self.scenes[Scene.OVERWORLD].enter(self.player_data, self.time_system)
 
-        # 根据存档直接跳转到目标场景
         if save_data.get("scene") == Scene.BUILDING and save_data.get("current_building"):
             building = self.find_building(save_data.get("current_building"))
             if building:
@@ -211,7 +206,6 @@ class SceneManager:
                 self.switch_to(Scene.BUILDING)
                 return
 
-        # 默认进入大地图
         self.switch_to(Scene.OVERWORLD)
 
     def find_building(self, building_name):
@@ -223,4 +217,4 @@ class SceneManager:
     def draw(self, screen):
         self.scenes[self.current_scene].draw(screen)
         if self.menu_open:
-            self.menu.draw(screen, self.player_data, self.current_slot,self.time_system)
+            self.menu.draw(screen, self.player_data, self.current_slot, self.time_system)
