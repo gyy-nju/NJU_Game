@@ -335,7 +335,11 @@
       "rects": [[18,21,3,2]],
       "inside_bg": "assets/images/Southgate_daytime.png",
       "inside_night_bg": "assets/images/Southgate_nighttime.png",
-      "dialog": ["这是平平无奇的南园校门"]
+      "dialog_mode": "mini_game",
+      "intro_dialog": ["你来到了南园校门。", "校门外是车水马龙的大街，要过马路吗？"],
+      "choice_prompt": "过马路小游戏",
+      "choice_yes": "挑战",
+      "choice_no": "暂时离开"
     },
     {
       "name": "南园14舍",

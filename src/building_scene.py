@@ -89,6 +89,10 @@ class BuildingScene:
             self.quiz_questions = random.Random(time.time_ns()).sample(all_questions, question_count)
             intro_dialog = building_data.get("quiz_intro", building_data.get('dialog', ["欢迎来到问答活动。"]))
             self.dialog_engine = DialogEngine(intro_dialog)
+        elif building_data.get("dialog_mode") == "mini_game":
+            self.mode = "mini_game_intro"
+            intro = building_data.get("intro_dialog", building_data.get("dialog", ["来挑战过马路吧！"]))
+            self.dialog_engine = DialogEngine(intro)
         elif building_data.get("dialog_mode") == "intro_choice":
             self.mode = "intro"
             intro_dialog = building_data.get("intro_dialog", ["欢迎光临。"])
@@ -143,6 +147,14 @@ class BuildingScene:
                     return Scene.OVERWORLD
                 return None  # 点击按钮后不继续处理其他事件
 
+            if self.mode == "mini_game_choice" and event.type == pygame.MOUSEBUTTONDOWN:
+                if self.yes_button.collidepoint(event.pos):
+                    # 返回信号，启动小游戏
+                    return ("start_minigame", self.building_data)
+                elif self.no_button.collidepoint(event.pos):
+                    return Scene.OVERWORLD
+                return None
+
             # 处理回复选项（reply_choice）的鼠标点击
             if self.mode == "reply_choice" and event.type == pygame.MOUSEBUTTONDOWN:
                 if self.reply1_button.collidepoint(event.pos):
@@ -191,6 +203,14 @@ class BuildingScene:
                             self.dialog_engine.next()
                         if self.dialog_engine and self.dialog_engine.is_finished():
                             self.mode = "choice"
+                            self.dialog_engine = None
+                        return None
+
+                    if self.mode == "mini_game_intro":
+                        if self.dialog_engine and not self.dialog_engine.is_finished():
+                            self.dialog_engine.next()
+                        if self.dialog_engine and self.dialog_engine.is_finished():
+                            self.mode = "mini_game_choice"
                             self.dialog_engine = None
                         return None
 
@@ -320,10 +340,10 @@ class BuildingScene:
             self.draw_quiz_intro_ui(screen)
         if self.mode == "quiz_question":
             self.draw_reply_choice_ui(screen)
-        if self.mode == "choice":
-            self.draw_choice_ui(screen)
         if self.mode == "reply_choice":
             self.draw_reply_choice_ui(screen)
+        if self.mode in ("choice", "mini_game_choice"):
+            self.draw_choice_ui(screen)
 
         # 绘制对话框（底部）
         if self.mode == "quiz_result" and self.quiz_feedback:

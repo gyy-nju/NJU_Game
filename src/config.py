@@ -22,17 +22,18 @@ PLAYER_SPEED = 2
 
 # 场景名称统一标识
 class Scene:
-    START = "start" #开始游戏页面
+    START = "start"
     SAVE_SELECT = "save_select"
     CHARACTER_CREATE = "character_create"
-    OVERWORLD = "overworld" #大地图页面
-    BUILDING = "building" #建筑物页面
+    OVERWORLD = "overworld"
+    BUILDING = "building"
+    MINIGAME = "minigame"   # 新增
 
 #字体路径
 font1_path = "assets/fonts/NotoSerifSC-VariableFont_wght.ttf" #思源宋体，适合标题
 font2_path ="assets/fonts/NotoSansSC-VariableFont_wght.ttf" #思源黑体，适合对话和UI
 
-import os
+
 
 AUTO_SAVE_ENABLED = True   # 默认开启
 
@@ -48,3 +49,4 @@ def load_auto_save_setting():
 def save_auto_save_setting():
     with open("auto_save.cfg", "w") as f:
         f.write(str(AUTO_SAVE_ENABLED))
+
