@@ -68,7 +68,8 @@ class GameMenu:
             f"姓名：{player_data.name if player_data else '未创建'}",
             f"性别：{player_data.gender if player_data else '-'}",
             f"位置：({int(player_data.x)}, {int(player_data.y)})" if player_data else "位置：-",
-            f"朝向：{player_data.direction if player_data else '-'}"
+            f"朝向：{player_data.direction if player_data else '-'}",
+            f"宿舍：{player_data.dormitory if player_data else '-'}"  # 新增行
         ]
         if time_system:
             time_str = time_system.get_time_string()

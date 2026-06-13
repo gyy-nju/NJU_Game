@@ -373,7 +373,7 @@
       "name": "南园超市",
       "rects": [[29,23,3,4]],
       "inside_bg": "assets/images/store_daytime.png",
-      "inside_night_bg": "assets/images/store_daytime.png",
+      "inside_night_bg": "assets/images/store_nighttime.png",
       "dialog": ["哇塞是南园超市","快来整点好吃的吧！"]
     },
     {

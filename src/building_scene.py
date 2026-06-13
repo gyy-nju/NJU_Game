@@ -81,6 +81,16 @@ class BuildingScene:
         self.quiz_feedback = None
         self.quiz_correct_count = 0
 
+        # 【新增】深夜（23:00 ~ 次日 5:59）静悄悄逻辑
+        if self.time_system is not None:
+            hour = self.time_system.get_current_hour()
+            is_own_dorm = (self.player_data is not None and
+                           self.building_data.get('name') == self.player_data.dormitory)
+            if (hour >= 23 or hour < 6) and self.building_data.get('name') != '汉口路校门' and not is_own_dorm:
+                self.mode = "dialog"
+                self.dialog_engine = DialogEngine(["这里静悄悄的，空无一人。"])
+                return
+
         # 根据建筑配置决定进入哪种模式
         if building_data.get("dialog_mode") == "quiz":
             self.mode = "quiz_intro"
@@ -155,6 +165,27 @@ class BuildingScene:
                     return Scene.OVERWORLD
                 return None
 
+            if self.mode == "sleep_choice" and event.type == pygame.MOUSEBUTTONDOWN:
+                if self.yes_button.collidepoint(event.pos):
+                    # 执行睡觉逻辑
+                    if self.time_system:
+                        hour = self.time_system.get_current_hour()
+                        if 6 <= hour < 18:
+                            # 白天睡到晚上 20:00
+                            self.time_system.hour = 20
+                            self.time_system.minute = 0
+                        else:
+                            # 晚上或凌晨睡到第二天早上 8:00
+                            self.time_system.hour = 8
+                            self.time_system.minute = 0
+                            self.time_system.day += 1
+                        self.mode = "sleep_result"
+                        self.dialog_engine = DialogEngine(["你睡了一觉，精神恢复。"])
+                elif self.no_button.collidepoint(event.pos):
+                    return Scene.OVERWORLD
+                return None
+
+
             # 处理回复选项（reply_choice）的鼠标点击
             if self.mode == "reply_choice" and event.type == pygame.MOUSEBUTTONDOWN:
                 if self.reply1_button.collidepoint(event.pos):
@@ -193,6 +224,14 @@ class BuildingScene:
                                 self.mode = "quiz_summary"
                             return None
 
+                    if self.mode == "sleep_result":
+                        if event.key == pygame.K_SPACE or event.key == pygame.K_e:
+                            if self.dialog_engine and not self.dialog_engine.is_finished():
+                                self.dialog_engine.next()
+                            if self.dialog_engine and self.dialog_engine.is_finished():
+                                return Scene.OVERWORLD
+                        return None
+
                     if self.mode == "quiz_summary":
                         if event.key == pygame.K_SPACE or event.key == pygame.K_e:
                             return Scene.OVERWORLD
@@ -211,6 +250,14 @@ class BuildingScene:
                             self.dialog_engine.next()
                         if self.dialog_engine and self.dialog_engine.is_finished():
                             self.mode = "mini_game_choice"
+                            self.dialog_engine = None
+                        return None
+
+                    if self.mode == "sleep_intro":
+                        if self.dialog_engine and not self.dialog_engine.is_finished():
+                            self.dialog_engine.next()
+                        if self.dialog_engine and self.dialog_engine.is_finished():
+                            self.mode = "sleep_choice"
                             self.dialog_engine = None
                         return None
 
@@ -244,7 +291,17 @@ class BuildingScene:
                     if self.mode == "dialog":
                         if self.dialog_engine and not self.dialog_engine.is_finished():
                             self.dialog_engine.next()
+                            # 对话结束后立即检查是否需要切换到睡觉选项
+                            if self.dialog_engine.is_finished():
+                                if self.player_data and self.building_data and self.building_data.get(
+                                        'name') == self.player_data.dormitory:
+                                    if self.time_system:
+                                        hour = self.time_system.get_current_hour()
+                                        self.mode = "sleep_intro"
+                                        self.dialog_engine = DialogEngine(["要睡觉吗？"])
                         return None
+
+
         return None
 
     def start_quiz_question(self):
@@ -344,6 +401,8 @@ class BuildingScene:
             self.draw_reply_choice_ui(screen)
         if self.mode in ("choice", "mini_game_choice"):
             self.draw_choice_ui(screen)
+        if self.mode == "sleep_choice":
+            self.draw_sleep_choice_ui(screen)
 
         # 绘制对话框（底部）
         if self.mode == "quiz_result" and self.quiz_feedback:
@@ -355,8 +414,8 @@ class BuildingScene:
             else:
                 if self.dialog_engine.is_finished() and self.mode == "npc_dialog_final":
                     draw_dialog_box(screen, "对话已结束")
-                else:
-                    draw_dialog_box(screen, "这里空无一人。")
+                #else:
+                    #draw_dialog_box(screen, "这里空无一人。")
 
         # 绘制“按 Q 离开”提示
         tip_text = "按 Q 离开建筑"
@@ -523,3 +582,23 @@ class BuildingScene:
         # 提示
         tip_surf = self.tip_font.render("按空格或 E 离开", True, (200, 200, 200))
         screen.blit(tip_surf, (panel_rect.centerx - tip_surf.get_width() // 2, panel_rect.y + panel_height - 40))
+
+    def draw_sleep_choice_ui(self, screen):
+        panel_width = 420
+        panel_height = 190
+        panel_x = (screen.get_width() - panel_width) // 2
+        panel_y = (screen.get_height() - panel_height) // 2
+        panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
+        pygame.draw.rect(screen, (24, 28, 42), panel_rect)
+        pygame.draw.rect(screen, (245, 230, 160), panel_rect, 3)
+        inner_rect = panel_rect.inflate(-8, -8)
+        pygame.draw.rect(screen, (80, 88, 120), inner_rect, 1)
+
+        title_text = "要睡一觉吗？"
+        title_surf = self.choice_font.render(title_text, True, (255, 255, 255))
+        screen.blit(title_surf, (panel_rect.centerx - title_surf.get_width() // 2, panel_rect.y + 24))
+
+        self.yes_button = pygame.Rect(panel_rect.x + 90, panel_rect.y + 78, 240, 42)
+        self.no_button = pygame.Rect(panel_rect.x + 90, panel_rect.y + 128, 240, 42)
+        self.draw_choice_button(screen, self.yes_button, "睡觉")
+        self.draw_choice_button(screen, self.no_button, "不睡")

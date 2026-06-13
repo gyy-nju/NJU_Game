@@ -20,6 +20,10 @@ class CharacterCreationScene:
         self.female_rect = pygame.Rect(0, 0, 130, 46)
         self.confirm_rect = pygame.Rect(0, 0, 220, 52)
         self.portrait_cache = {}
+        self.dormitories = ["南园14舍", "南园1舍", "南园2舍", "南园3舍", "南园4舍"]
+        self.dormitory_index = 0
+        self.left_arrow_rect = pygame.Rect(0, 0, 30, 30)
+        self.right_arrow_rect = pygame.Rect(0, 0, 30, 30)
 
     def get_portrait(self, portrait_file):
         if portrait_file not in self.portrait_cache:
@@ -38,6 +42,7 @@ class CharacterCreationScene:
         self.gender = "男"
         self.name_error = ""
         self.created_player_data = None
+        self.dormitory_index = 0
 
     def update(self, events):
         for event in events:
@@ -48,7 +53,14 @@ class CharacterCreationScene:
                     self.name = self.name[:-1]
                 elif event.key == pygame.K_RETURN and self.can_confirm():
                     self.created_player_data = PlayerData(self.name.strip(), self.gender)
+                    self.created_player_data.dormitory = self.dormitories[self.dormitory_index]
                     return Scene.OVERWORLD
+            if event.type == pygame.MOUSEWHEEL:
+                # 滚轮向上 y > 0 表示向左切换，向下 y < 0 向右切换
+                if event.y > 0:
+                    self.dormitory_index = (self.dormitory_index - 1) % len(self.dormitories)
+                elif event.y < 0:
+                    self.dormitory_index = (self.dormitory_index + 1) % len(self.dormitories)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.name_rect.collidepoint(event.pos):
@@ -60,6 +72,11 @@ class CharacterCreationScene:
                 elif self.confirm_rect.collidepoint(event.pos) and self.can_confirm():
                     self.created_player_data = PlayerData(self.name.strip(), self.gender)
                     return Scene.OVERWORLD
+                # 宿舍选择箭头
+                if self.left_arrow_rect.collidepoint(event.pos):
+                    self.dormitory_index = (self.dormitory_index - 1) % len(self.dormitories)
+                elif self.right_arrow_rect.collidepoint(event.pos):
+                    self.dormitory_index = (self.dormitory_index + 1) % len(self.dormitories)
         return None
 
     def name_length(self, text):
@@ -248,7 +265,39 @@ class CharacterCreationScene:
         self.draw_choice(screen, self.male_rect, "男", self.gender == "男")
         self.draw_choice(screen, self.female_rect, "女", self.gender == "女")
 
-        self.confirm_rect.topleft = (panel_x, 450)
+        # 宿舍选择
+        dorm_label = get_ui_font(22).render("宿舍", True, (230, 230, 230))
+        screen.blit(dorm_label, (panel_x, 390))
+
+        # 宿舍选择容器背景
+        container_rect = pygame.Rect(panel_x, 420, 320, 50)
+        pygame.draw.rect(screen, (46, 52, 68), container_rect)
+        pygame.draw.rect(screen, (230, 230, 230), container_rect, 2)
+
+        # 左箭头按钮
+        self.left_arrow_rect = pygame.Rect(panel_x + 10, 430, 40, 30)
+        pygame.draw.rect(screen, (70, 90, 130), self.left_arrow_rect)
+        pygame.draw.rect(screen, (230, 230, 230), self.left_arrow_rect, 2)
+        left_arrow_surf = get_ui_font(24).render("◀", True, (255, 255, 255))
+        screen.blit(left_arrow_surf, (self.left_arrow_rect.centerx - left_arrow_surf.get_width() // 2,
+                                      self.left_arrow_rect.centery - left_arrow_surf.get_height() // 2))
+
+        # 右箭头按钮
+        self.right_arrow_rect = pygame.Rect(panel_x + 270, 430, 40, 30)
+        pygame.draw.rect(screen, (70, 90, 130), self.right_arrow_rect)
+        pygame.draw.rect(screen, (230, 230, 230), self.right_arrow_rect, 2)
+        right_arrow_surf = get_ui_font(24).render("▶", True, (255, 255, 255))
+        screen.blit(right_arrow_surf, (self.right_arrow_rect.centerx - right_arrow_surf.get_width() // 2,
+                                       self.right_arrow_rect.centery - right_arrow_surf.get_height() // 2))
+
+        # 当前宿舍名称（居中显示在容器内）
+        dorm_text = self.dormitories[self.dormitory_index]
+        dorm_surf = get_ui_font(24).render(dorm_text, True, (255, 255, 255))
+        dorm_x = container_rect.centerx - dorm_surf.get_width() // 2
+        dorm_y = container_rect.centery - dorm_surf.get_height() // 2
+        screen.blit(dorm_surf, (dorm_x, dorm_y))
+
+        self.confirm_rect.topleft = (panel_x, 500)
         self.draw_confirm(screen)
 
     def draw_choice(self, screen, rect, text, selected):

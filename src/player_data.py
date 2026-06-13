@@ -10,6 +10,7 @@ class PlayerData:
     x: int = 19*TILE_SIZE
     y: int = 23*TILE_SIZE
     direction: str = "down"
+    dormitory: str = ""
 
     def to_dict(self):
         return {
@@ -17,7 +18,8 @@ class PlayerData:
             "gender": self.gender,
             "x": self.x,
             "y": self.y,
-            "direction": self.direction
+            "direction": self.direction,
+            "dormitory": self.dormitory  # 新字段
         }
 
     @classmethod
@@ -27,5 +29,6 @@ class PlayerData:
             gender=data.get("gender", "男"),
             x=data.get("x", TILE_SIZE),
             y=data.get("y", TILE_SIZE),
-            direction=data.get("direction", "down")
+            direction=data.get("direction", "down"),
+            dormitory = data.get("dormitory", "")  # 新字段
         )
